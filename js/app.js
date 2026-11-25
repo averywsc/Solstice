@@ -15,6 +15,7 @@ if(hdrBtn){
   hdrBtn.onclick=()=>{
     if(activeTab==='build'){ const b=$('#dl'); if(b) b.click(); }
     else if(activeTab==='tex'){ const b=$('#tpdl'); if(b) b.click(); }
+    else if(activeTab==='tools'){ show('tex'); }
     else { show('build'); window.SOL_TOAST('Customize your shader pack or pick any preset to download.'); }
   };
 }
@@ -64,39 +65,34 @@ function show(id){
     if(window.initTextures&&!tabs.tex){tabs.tex=1;window.initTextures($('#tab-tex'));}
     if(hdrBtn) hdrBtn.textContent='Export Texture .zip';
     setStatus('Texture Studio','Resolution-aware pixel editor & image converter');
+  }else if(id==='tools'){
+    if(window.initMcTools&&!tabs.tools){tabs.tools=1;window.initMcTools($('#tab-tools'));}
+    if(hdrBtn) hdrBtn.textContent='Open Texture Studio';
+    setStatus('Minecraft Tools','Circle/Sphere blueprints · Banner designer · RGB text · Nether calc · Gear planner');
   }
 }
 
-// ---------- live offscreen thumbnail renderer for Shader Packs ----------
-let thumbQueue=[],thumbRunning=false,thumbPv=null;
-function renderThumbQueue(){
-  if(thumbRunning||!thumbQueue.length) return;
-  thumbRunning=true;
-  if(!thumbPv){
-    try{
-      const c=document.createElement('canvas');c.width=384;c.height=216;
-      thumbPv=Preview.create(c);
-      thumbPv.P.sunEl=16;thumbPv.P.sunAz=-36;thumbPv.P.yaw=22;thumbPv.P.pitch=-10;thumbPv.P.dist=13.5;
-    }catch(_){thumbQueue=[];thumbRunning=false;return;}
+// ---------- Lightbox for full-size Minecraft screenshots ----------
+function openLightbox(pack){
+  const ov=el('div','lightbox');
+  const img=new Image();img.src='img/packs/'+pack.name+'.jpg';img.alt='Solstice '+pack.name;
+  const cap=el('div','lightbox-cap');
+  cap.append(el('strong',null,'Solstice '+pack.name),el('span','small',pack.blurb));
+  const dl=el('button','btn brand sm','Download .zip');
+  dl.onclick=()=>download(SOL.zip(SOL.makePreset(pack.name)),'Solstice_'+pack.name+'.zip');
+  cap.append(dl);
+  if(pack.opts){
+    const cu=el('button','btn alt sm','Customize in Builder');
+    cu.onclick=()=>{ov.remove();opts=Object.assign(SOL.defaults(),pack.opts);show('build');title.value='Solstice '+pack.name+' (custom)';const ss=$('#startsel');if(ss)ss.value='p:'+pack.name;buildOptions();applyNow();};
+    cap.append(cu);
   }
-  const step=()=>{
-    if(!thumbQueue.length){thumbRunning=false;return;}
-    const {name,box,opts:po}=thumbQueue.shift();
-    if(SHOTS[name]){
-      box.innerHTML='';const i=new Image();i.src=SHOTS[name];box.append(i);
-      setTimeout(step,10);return;
-    }
-    try{
-      const pack=po?SOL.makePack(Object.assign({},DEFS,po,{shadowRes:Math.min(1024,+(po.shadowRes||1024))})):SOL.makePreset(name);
-      thumbPv.P.sunEl=(name==='Neon'||name==='Noir')?-14:(name==='Ember'||name==='Cinematic')?9:18;
-      thumbPv.setPack(pack);
-      const url=thumbPv.snapshot();
-      SHOTS[name]=url;
-      box.innerHTML='';const i=new Image();i.src=url;box.append(i);
-    }catch(_){box.textContent='Preview unavailable';}
-    setTimeout(step,35);
-  };
-  setTimeout(step,40);
+  const cl=el('button','btn alt sm','Close (Esc)');cl.onclick=()=>ov.remove();
+  cap.append(cl);
+  ov.append(img,cap);
+  ov.onclick=e=>{if(e.target===ov)ov.remove();};
+  const onKey=e=>{if(e.key==='Escape'){ov.remove();window.removeEventListener('keydown',onKey);}};
+  window.addEventListener('keydown',onKey);
+  document.body.append(ov);
 }
 
 // ---------- shader packs ----------
@@ -104,13 +100,52 @@ const GROUPS=[['Standard','From near-vanilla speed to maximum detail.'],['Cinema
 let packFilter={q:'',group:'All',maxCost:5};
 function packs(){
   const root=$('#tab-packs');root.innerHTML='';
+  const allNames=['Potato'].concat(SOL_DATA.presets.map(p=>p.name));
+
+  // Hero with instant Before / After Minecraft screenshot slider (zero WebGL lag!)
+  const hero=el('div','panel hero-bar');
+  hero.innerHTML=`
+    <div class="hero-copy">
+      <h2>Minecraft Java Shaders, Built for Every PC</h2>
+      <p>Compare real in-game Minecraft screenshots side-by-side. Drag the slider to see how each Solstice pack transforms the exact same world — from near-vanilla <b>Potato</b> to <b>Ultra</b>, <b>Neon</b>, and <b>Toon</b>.</p>
+      <div class="bar" style="margin:0">
+        <label>Left <select id="cmpL">${allNames.map(n=>`<option ${n==='Potato'?'selected':''}>${n}</option>`).join('')}</select></label>
+        <label>Right <select id="cmpR">${allNames.map(n=>`<option ${n==='Ultra'?'selected':''}>${n}</option>`).join('')}</select></label>
+      </div>
+    </div>
+    <div class="cmp-wrap" id="cmpWrap" title="Drag left or right to compare shader packs">
+      <img id="cmpImgR" src="img/packs/Ultra.jpg" alt="Right shader preview">
+      <div class="cmp-top" id="cmpTop" style="clip-path:inset(0 50% 0 0)">
+        <img id="cmpImgL" src="img/packs/Potato.jpg" alt="Left shader preview">
+      </div>
+      <div class="cmp-line" id="cmpLine" style="left:50%"></div>
+      <div class="cmp-knob" id="cmpKnob" style="left:50%">⇄</div>
+      <span class="cmp-tag left" id="cmpTagL">Solstice Potato</span>
+      <span class="cmp-tag right" id="cmpTagR">Solstice Ultra</span>
+    </div>`;
+  root.append(hero);
+
+  const cmpWrap=$('#cmpWrap',hero),cmpTop=$('#cmpTop',hero),cmpLine=$('#cmpLine',hero),cmpKnob=$('#cmpKnob',hero);
+  const setPct=p=>{
+    const pct=Math.max(2,Math.min(98,p));
+    cmpTop.style.clipPath=`inset(0 ${100-pct}% 0 0)`;
+    cmpLine.style.left=pct+'%';cmpKnob.style.left=pct+'%';
+  };
+  let sliding=false;
+  const moveAt=e=>{const r=cmpWrap.getBoundingClientRect();setPct((e.clientX-r.left)/r.width*100);};
+  cmpWrap.onpointerdown=e=>{sliding=true;cmpWrap.setPointerCapture(e.pointerId);moveAt(e);};
+  cmpWrap.onpointermove=e=>{if(sliding)moveAt(e);};
+  cmpWrap.onpointerup=()=>sliding=false;
+  $('#cmpL',hero).onchange=e=>{$('#cmpImgL',hero).src='img/packs/'+e.target.value+'.jpg';$('#cmpTagL',hero).textContent='Solstice '+e.target.value;};
+  $('#cmpR',hero).onchange=e=>{$('#cmpImgR',hero).src='img/packs/'+e.target.value+'.jpg';$('#cmpTagR',hero).textContent='Solstice '+e.target.value;};
+
   const ctrl=el('div','bar panel');
   ctrl.innerHTML=`
-    <input id="psearch" type="search" placeholder="Filter shader packs..." value="${packFilter.q}" style="min-width:200px">
+    <input id="psearch" type="search" placeholder="Filter shader packs..." value="${packFilter.q}" style="min-width:210px">
     <label>Category <select id="pgroup"><option>All</option><option>Standard</option><option>Cinematic</option><option>Unique</option></select></label>
     <label>Performance <select id="pcost"><option value="5">Any GPU</option><option value="2">Low-end friendly (1–2)</option><option value="3">Mid-range (1–3)</option></select></label>
-    <details style="margin:0 0 0 auto;border:0;background:none"><summary style="padding:4px 8px;font-size:.82rem;color:var(--mut)">How to install</summary>
-      <div class="small" style="padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--bg2);margin-top:6px">
+    <details style="margin:0 0 0 auto;border:0;background:none"><summary style="padding:4px 8px;font-size:12.5px;color:var(--mute)">How to install</summary>
+      <div class="small" style="padding:8px 10px;border:1px solid var(--line);border-radius:4px;background:var(--bg);margin-top:6px">
         1. Install <b>Iris</b> (Fabric/NeoForge) or <b>OptiFine</b> for Minecraft Java Edition.<br>
         2. Put the downloaded <code>.zip</code> into <code>.minecraft/shaderpacks</code> (do not unzip).<br>
         3. Select it in <b>Options &gt; Video Settings &gt; Shader Packs</b>.
@@ -126,7 +161,7 @@ function packs(){
   renderPackGrid();
 }
 function renderPackGrid(){
-  const host=$('#pack-groups');if(!host)return;host.innerHTML='';thumbQueue=[];
+  const host=$('#pack-groups');if(!host)return;host.innerHTML='';
   const q=packFilter.q.trim().toLowerCase();
   const list=[{name:'Potato',group:'Standard',blurb:'Fastest. Almost vanilla speed.',desc:'Built for speed: simple lighting, fog and a cheap sunset sky. For weak graphics cards.',opts:null}].concat(SOL_DATA.presets);
   let total=0;
@@ -146,9 +181,9 @@ function renderPackGrid(){
     matches.forEach(p=>{
       const card=el('div','card');
       const shot=el('div','shot');
-      if(p.opts){shot.style.cursor='pointer';shot.title='Click to preview & customize in WebGL2';shot.onclick=()=>{opts=Object.assign(SOL.defaults(),p.opts);show('build');title.value='Solstice '+p.name+' (custom)';const ss=$('#startsel');if(ss)ss.value='p:'+p.name;buildOptions();applyNow();};}
-      if(SHOTS[p.name]){const i=new Image();i.src=SHOTS[p.name];shot.append(i);}
-      else{shot.textContent='Rendering preview...';thumbQueue.push({name:p.name,box:shot,opts:p.opts});}
+      const img=new Image();img.loading='lazy';img.decoding='async';img.src='img/packs/'+p.name+'.jpg';img.alt='Solstice '+p.name+' in Minecraft';
+      shot.append(img,el('span','shot-pill','Click to zoom'));
+      shot.onclick=()=>openLightbox(p);
       const c=p.opts?cost(Object.assign(SOL.defaults(),p.opts)):1;
       const body=el('div','body');
       body.append(el('h3',null,'Solstice '+p.name),el('p',null,p.blurb),el('p','meta',p.desc));
@@ -159,7 +194,7 @@ function renderPackGrid(){
       d.onclick=()=>{d.textContent='Preparing...';setTimeout(()=>{download(SOL.zip(SOL.makePreset(p.name)),'Solstice_'+p.name+'.zip');d.textContent='Download';window.SOL_TOAST('Downloaded Solstice_'+p.name+'.zip');},30);};
       row.append(d);
       if(p.opts){
-        const b=el('button','btn alt','Preview & customize');
+        const b=el('button','btn alt','Customize');
         b.onclick=()=>{opts=Object.assign(SOL.defaults(),p.opts);show('build');title.value='Solstice '+p.name+' (custom)';const ss=$('#startsel');if(ss)ss.value='p:'+p.name;buildOptions();applyNow();};
         row.append(b);
       }
@@ -168,7 +203,6 @@ function renderPackGrid(){
     host.append(grid);
   });
   if(!total) host.append(el('p','note','No shader packs match your current filter.'));
-  renderThumbQueue();
 }
 
 // ---------- builder ----------
