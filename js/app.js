@@ -107,7 +107,7 @@ function packs(){
   hero.innerHTML=`
     <div class="hero-copy">
       <h2>Minecraft Java Shaders, Built for Every PC</h2>
-      <p>Compare real in-game Minecraft screenshots side-by-side. Drag the slider to see how each Solstice pack transforms the exact same world — from near-vanilla <b>Potato</b> to <b>Ultra</b>, <b>Neon</b>, and <b>Toon</b>.</p>
+      <p>Compare real in-game Minecraft screenshots side-by-side. Drag the slider to see how each Solstice pack transforms the exact same world: from near-vanilla <b>Potato</b> to <b>Ultra</b>, <b>Neon</b>, and <b>Toon</b>.</p>
       <div class="bar" style="margin:0">
         <label>Left <select id="cmpL">${allNames.map(n=>`<option ${n==='Potato'?'selected':''}>${n}</option>`).join('')}</select></label>
         <label>Right <select id="cmpR">${allNames.map(n=>`<option ${n==='Ultra'?'selected':''}>${n}</option>`).join('')}</select></label>

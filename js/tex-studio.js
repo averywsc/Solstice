@@ -9,17 +9,29 @@ let packRes=32,mirrorX=false,mirrorY=false,showGrid=true,cat='all',undo=[],redo=
 let recentColors=['#c0392b','#2980b9','#27ae60','#f1c40f'];
 const upCfg={fit:'auto',scale:'smooth',rmBg:false,bgTol:32,colors:0,dither:false};
 
-root.innerHTML=`<p class="note">Draw pixel art or drop any image to automatically convert it to your pack's resolution (16×16, 32×32, 64×64, 128×128, or 256×256). Export a ready-to-use Minecraft Java resource pack.</p>
+root.innerHTML=`<p class="note">Upload any image to automatically shrink it to your pack resolution (16x16, 32x32, 64x64, 128x128, or 256x256), then use the <b>Eraser</b> or <b>Magic Erase</b> to clean up pixels and export a ready-to-use Minecraft resource pack.</p>
 <div class="bar panel">
   <label>Pack name <input id="tpname" value="My Texture Pack"></label>
   <label>Pack resolution <select id="tpres"><option value="16">16×16 (Vanilla)</option><option value="32" selected>32×32 (Faithful)</option><option value="64">64×64 (HD)</option><option value="128">128×128 (Ultra)</option><option value="256">256×256 (Extreme)</option></select></label>
   <button class="btn alt sm" id="tpresizeall" title="Resample every texture in your pack to match the selected Pack resolution">Resize all to pack</button>
   <label>Minecraft version <select id="tpver"></select></label>
-  <button class="btn alt sm" id="tptotem">Custom totem</button>
   <button class="btn alt sm" id="tpbatch">Batch upload images</button>
   <button class="btn alt sm" id="tpimport">Import .zip pack</button>
   <input type="file" id="tpbatchIn" accept="image/*" multiple hidden>
   <input type="file" id="tpimportIn" accept=".zip" hidden>
+</div>
+<div class="bar panel" id="tpquick" style="padding:8px 12px">
+  <span class="small"><b>Quick custom textures:</b></span>
+  <button class="btn alt sm" data-q="item/totem_of_undying">Totem of Undying</button>
+  <button class="btn alt sm" data-q="item/diamond_sword">Diamond Sword</button>
+  <button class="btn alt sm" data-q="item/netherite_sword">Netherite Sword</button>
+  <button class="btn alt sm" data-q="item/golden_apple">Golden Apple</button>
+  <button class="btn alt sm" data-q="item/ender_pearl">Ender Pearl</button>
+  <button class="btn alt sm" data-q="item/shield">Shield</button>
+  <button class="btn alt sm" data-q="block/grass_block_side">Grass Block</button>
+  <button class="btn alt sm" data-q="block/diamond_ore">Diamond Ore</button>
+  <button class="btn alt sm" data-q="environment/sun">Sun</button>
+  <button class="btn alt sm" data-q="gui/sprites/hud/crosshair">Crosshair</button>
 </div>
 <div class="tex">
   <div>
@@ -36,7 +48,7 @@ root.innerHTML=`<p class="note">Draw pixel art or drop any image to automaticall
     <div class="bar" style="margin-top:6px"><input id="cpath" type="text" placeholder="block/my_texture" style="flex:1;min-width:120px"><select id="csize"><option value="0">Pack size</option><option value="16">16×16</option><option value="32">32×32</option><option value="64">64×64</option><option value="128">128×128</option><option value="256">256×256</option></select><button class="btn alt sm" id="cadd">Add</button></div>
   </div>
   <div>
-    <div id="ed" class="panel"><div class="small" id="edname">Choose a texture from the list on the left — or click <b>Custom totem</b> / <b>Batch upload images</b> above to start.</div></div>
+    <div id="ed" class="panel"><div class="small" id="edname">Choose a texture from the list on the left: or click <b>Custom totem</b> / <b>Batch upload images</b> above to start.</div></div>
     <div class="panel" style="margin-top:14px">
       <div class="bar" style="margin-bottom:6px"><b>Your pack</b><span class="small" id="count"></span><button class="btn alt sm" id="tpclear" style="margin-left:auto">Clear pack</button></div>
       <div class="chips" id="chips"></div>
@@ -379,11 +391,11 @@ function select(path,baseW,baseH,w,h){
 
   // Tools bar
   const tools=el('div','bar');tools.style.marginBottom='6px';
-  [['pencil','Pencil'],['eraser','Eraser'],['line','Line'],['rect','Rect'],['circle','Circle'],['fill','Fill'],['pick','Pick']].forEach(t=>{
+  [['pencil','Pencil'],['eraser','Eraser'],['magicerase','Magic Erase'],['line','Line'],['rect','Rect'],['circle','Circle'],['fill','Fill'],['pick','Pick']].forEach(t=>{
     const b=el('button','btn alt sm',t[1]);b.dataset.tool=t[0];b.onclick=()=>{tool=t[0];mark();};tools.append(b);
   });
   const ci=el('input');ci.type='color';ci.value=color;ci.id='tcolor';ci.oninput=()=>{color=ci.value;addRecentColor(color);renderRecent();};
-  const bsz=el('select');bsz.title='Brush size';[1,2,3,4].forEach(n=>{const o=el('option',null,n+'px');o.value=n;bsz.append(o);});bsz.value=String(brush);bsz.onchange=()=>brush=+bsz.value;
+  const bsz=el('select');bsz.title='Brush / Eraser size';[1,2,3,4,6,8].forEach(n=>{const o=el('option',null,n+'px');o.value=n;bsz.append(o);});bsz.value=String(brush);bsz.onchange=()=>brush=+bsz.value;
   const alLab=el('label',null,'Opacity ');const alIn=el('input');alIn.type='range';alIn.min='0.1';alIn.max='1';alIn.step='0.05';alIn.value=String(alpha);alIn.style.width='68px';alIn.oninput=()=>alpha=+alIn.value;alLab.append(alIn);
   const un=el('button','btn alt sm','Undo');un.title='Ctrl+Z';un.onclick=doUndo;
   const rd=el('button','btn alt sm','Redo');rd.title='Ctrl+Y';rd.onclick=doRedo;
@@ -478,16 +490,17 @@ function select(path,baseW,baseH,w,h){
   stage.append(cv,gridCv);
   left.append(stage);
 
-  // Image Uploader Dropzone + Converter Options
+  // Image Uploader Dropzone + Converter Options (placed prominently right above the canvas!)
   const dz=el('div','dropzone');
-  dz.innerHTML=`<strong>Drop an image here, click to upload, or press Ctrl+V to paste</strong><span class="small" id="upinfo">Automatically converts any image to ${tw}×${th} (your pack size)</span>`;
+  dz.style.marginTop='0';dz.style.marginBottom='10px';
+  dz.innerHTML=`<strong>Upload Image &amp; Auto-Convert to ${tw}×${th} (Drop, Click, or Ctrl+V)</strong><span class="small" id="upinfo">Shrinks any photo or PNG to ${tw}×${th}. Use <b>Eraser</b> or <b>Magic Erase</b> below to delete pixels you don't want.</span>`;
   const upIn=el('input');upIn.type='file';upIn.accept='image/*';upIn.hidden=true;
   dz.onclick=()=>upIn.click();
   dz.ondragover=e=>{e.preventDefault();dz.classList.add('drag');};
   dz.ondragleave=()=>dz.classList.remove('drag');
   dz.ondrop=e=>{e.preventDefault();dz.classList.remove('drag');if(e.dataTransfer.files[0])handleImageFile(e.dataTransfer.files[0]);};
   upIn.onchange=()=>{if(upIn.files[0])handleImageFile(upIn.files[0]);upIn.value='';};
-  left.append(dz,upIn);
+  left.prepend(dz,upIn);
 
   const uo=el('div','up-opts');
   uo.innerHTML=`
@@ -605,6 +618,7 @@ function select(path,baseW,baseH,w,h){
     }
     pushUndo();
     if(tool==='fill'){flood(x,y);commit();return;}
+    if(tool==='magicerase'){magicErase(x,y,upCfg.bgTol);commit();return;}
     drawing=true;startPt=[x,y];lastPt=[x,y];
     if(tool==='line'||tool==='rect'||tool==='circle'){snapBefore=ctx.getImageData(0,0,cv.width,cv.height);drawShape(x,y,x,y);}
     else{plotPx(x,y);}
@@ -645,6 +659,21 @@ function flood(x,y){
   if(tgt.every((v,i)=>v===nc[i])) return;
   const st=[[x,y]];const m=i=>d[i]===tgt[0]&&d[i+1]===tgt[1]&&d[i+2]===tgt[2]&&d[i+3]===tgt[3];
   while(st.length){const [px,py]=st.pop();if(px<0||py<0||px>=w||py>=h)continue;const i=(py*w+px)*4;if(!m(i))continue;d[i]=nc[0];d[i+1]=nc[1];d[i+2]=nc[2];d[i+3]=255;st.push([px+1,py],[px-1,py],[px,py+1],[px,py-1]);}
+  ctx.putImageData(img,0,0);
+}
+function magicErase(x,y,tol){
+  const w=cv.width,h=cv.height,img=ctx.getImageData(0,0,w,h),d=img.data;
+  const i0=(y*w+x)*4; if(d[i0+3]===0) return;
+  const br=d[i0],bg=d[i0+1],bb=d[i0+2],tolSq=(tol||32)*(tol||32)*3;
+  const vis=new Uint8Array(w*h),st=[[x,y]];
+  while(st.length){
+    const [px,py]=st.pop();
+    if(px<0||py<0||px>=w||py>=h) continue;
+    const idx=py*w+px; if(vis[idx]) continue;
+    const i=idx*4; if(d[i+3]===0){vis[idx]=1;continue;}
+    const dr=d[i]-br,dg=d[i+1]-bg,db=d[i+2]-bb;
+    if(dr*dr+dg*dg+db*db<=tolSq){vis[idx]=1;d[i+3]=0;st.push([px+1,py],[px-1,py],[px,py+1],[px,py-1]);}
+  }
   ctx.putImageData(img,0,0);
 }
 function preview(){
@@ -781,11 +810,12 @@ $('#cadd').onclick=()=>{
   const s=+$('#csize').value||packRes;
   select(p,16,16,s,s);
 };
-$('#tptotem').onclick=()=>{
-  $('#tsearch').value='';
-  const [tw,th]=targetSize(16,16);
-  select('item/totem_of_undying',16,16,tw,th);
-};
+$('#tpquick').querySelectorAll('[data-q]').forEach(b=>{
+  b.onclick=()=>{
+    const p=b.dataset.q,m=texMeta(p),[tw,th]=store[p]?[store[p].w,store[p].h]:targetSize(m.baseW,m.baseH);
+    select(p,m.baseW,m.baseH,tw,th);
+  };
+});
 $('#tpclear').onclick=()=>{
   if(!Object.keys(store).length) return;
   for(const k in store) delete store[k];
@@ -824,4 +854,7 @@ $('#tpdl').onclick=async()=>{
 
 loadLocal();
 drawList();drawChips();
+// Auto-open Totem of Undying so the image uploader, resolution selector & eraser are immediately ready!
+const initM=texMeta('item/totem_of_undying'),[initW,initH]=targetSize(initM.baseW,initM.baseH);
+select('item/totem_of_undying',initM.baseW,initM.baseH,initW,initH);
 };

@@ -22,9 +22,9 @@ Solstice/
 
 ## Features
 
-- **Shader Packs Gallery** — 15 curated packs (*Standard*, *Cinematic*, *Unique*) with live WebGL2-rendered thumbnails, GPU cost indicators, feature badges, search/filters, and instant `.zip` downloads.
-- **Live WebGL2 Shader Builder** — 81 shader options across 10 categories, real-time GLSL preview, camera & time-of-day controls, Hold-to-Compare Default, saved custom presets, JSON import/export, and PNG screenshots.
-- **Texture Studio** — Resolution-aware resource pack maker (`16×16` to `256×256`):
+- **Shader Packs Gallery**: 15 curated packs (*Standard*, *Cinematic*, *Unique*) with live WebGL2-rendered thumbnails, GPU cost indicators, feature badges, search/filters, and instant `.zip` downloads.
+- **Live WebGL2 Shader Builder**: 81 shader options across 10 categories, real-time GLSL preview, camera & time-of-day controls, Hold-to-Compare Default, saved custom presets, JSON import/export, and PNG screenshots.
+- **Texture Studio**: Resolution-aware resource pack maker (`16×16` to `256×256`):
   - Drag-and-drop, click, or `Ctrl+V` image-to-texture converter (Cover / Contain / Stretch, stepped smooth vs pixelated downscaling, background removal, palette quantization & Bayer dithering, lossless re-conversion).
   - Batch multi-image upload, Resize All to Pack Resolution, and existing `.zip` resource pack import.
   - Pixel art editor with Pencil, Eraser, Line, Rect, Circle, Fill, Eyedropper, Brush size & opacity, Mirror X/Y, Grid, seamless tiling nudge / ½ Shift, Brightness/Contrast/Pixel-Noise effects, Undo/Redo, 3D isometric block preview, and 3×3 tiled preview.
