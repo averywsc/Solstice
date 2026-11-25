@@ -371,3 +371,5 @@ canvas#gridov{position:absolute;inset:0;width:100%;height:100%;pointer-events:no
 }
 .ench-item.on{border-color:var(--sky);background:var(--skySoft)}
 .ench-item.conflict{opacity:.42}
+.md-prog{height:8px;background:var(--bg);border:1px solid var(--edge);border-radius:999px;overflow:hidden;margin-top:5px}
+.md-prog>div{height:100%;width:0;background:var(--sky);transition:width .12s ease}

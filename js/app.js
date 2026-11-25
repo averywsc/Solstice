@@ -15,6 +15,7 @@ if(hdrBtn){
   hdrBtn.onclick=()=>{
     if(activeTab==='build'){ const b=$('#dl'); if(b) b.click(); }
     else if(activeTab==='tex'){ const b=$('#tpdl'); if(b) b.click(); }
+    else if(activeTab==='music'){ const b=$('#mdExport'); if(b) b.click(); }
     else if(activeTab==='tools'){ show('tex'); }
     else { show('build'); window.SOL_TOAST('Customize your shader pack or pick any preset to download.'); }
   };
@@ -65,6 +66,10 @@ function show(id){
     if(window.initTextures&&!tabs.tex){tabs.tex=1;window.initTextures($('#tab-tex'));}
     if(hdrBtn) hdrBtn.textContent='Export Texture .zip';
     setStatus('Texture Studio','Resolution-aware pixel editor & image converter');
+  }else if(id==='music'){
+    if(window.initMusicDiscs&&!tabs.music){tabs.music=1;window.initMusicDiscs($('#tab-music'));}
+    if(hdrBtn) hdrBtn.textContent='Export Music Pack .zip';
+    setStatus('Music Discs','Upload MP3/WAV/OGG to build custom Minecraft music disc packs');
   }else if(id==='tools'){
     if(window.initMcTools&&!tabs.tools){tabs.tools=1;window.initMcTools($('#tab-tools'));}
     if(hdrBtn) hdrBtn.textContent='Open Texture Studio';
